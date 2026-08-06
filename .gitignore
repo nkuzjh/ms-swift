@@ -138,6 +138,7 @@ eval_outputs/
 vlmeval/
 my_model/
 /data
+/models/
 result/
 images
 /custom/

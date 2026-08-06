@@ -217,7 +217,22 @@ def init_self_cognition_preprocessor(
 def _inject_dataset_routing_tag(dataset: DATASET_TYPE, ds_name: str) -> DATASET_TYPE:
     """Inject ``dataset`` column for multi-teacher routing (constant per source dataset)."""
     if isinstance(dataset, HfIterableDataset):
-        return dataset.map(lambda example: {**example, 'dataset': ds_name})
+        column_names = dataset.column_names or []
+        source_column = 'source_dataset'
+        while source_column in column_names:
+            source_column = f'source_{source_column}'
+
+        def inject_tag(example):
+            if 'dataset' in example:
+                example = {**example, source_column: example['dataset']}
+            return {**example, 'dataset': ds_name}
+
+        return dataset.map(inject_tag)
+    if 'dataset' in dataset.column_names:
+        source_column = 'source_dataset'
+        while source_column in dataset.column_names:
+            source_column = f'source_{source_column}'
+        dataset = dataset.rename_column('dataset', source_column)
     return dataset.add_column('dataset', [ds_name] * len(dataset))
 
 

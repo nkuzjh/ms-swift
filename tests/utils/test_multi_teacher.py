@@ -387,6 +387,26 @@ class TestStreamingDatasetMultiTeacherRouting(unittest.TestCase):
         static_tags = [s.extra['dataset'] for s in static_samples]
         self.assertEqual(stream_tags, static_tags)
 
+    def test_existing_dataset_column_is_preserved(self):
+        path = os.path.join(self.tmpdir, 'existing-dataset-column.jsonl')
+        with open(path, 'w', encoding='utf-8') as f:
+            row = {
+                'messages': [{'role': 'user', 'content': 'prompt'}],
+                'dataset': 'original-dataset-name',
+            }
+            f.write(json.dumps(row) + '\n')
+
+        for streaming in (False, True):
+            train, _ = load_dataset(
+                [path],
+                streaming=streaming,
+                split_dataset_ratio=0.,
+                remove_unused_columns=False,
+            )
+            loaded = next(iter(train))
+            self.assertEqual(loaded['dataset'], path)
+            self.assertEqual(loaded['source_dataset'], 'original-dataset-name')
+
     def test_streaming_interleave_preserves_per_dataset_tags(self):
         samples = self._load_samples(streaming=True, interleave_prob=[0.5, 0.5])
         self.assertGreater(len(samples), 0)
